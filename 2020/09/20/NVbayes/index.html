@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Muse","version":"7.7.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="朴素贝叶斯优点：在数据较小的情况下仍然有效，可以处理多类别的问题。 缺点：对于输入数据的准备方式较为敏感。 适用数据类型：标称性数据。 p1(x, y)表示该点属于类别1的概率p2(x, y)表示该点属于类别2的概率 真正需要比较的是p（c1|x, y）和p（c2|x,y）。（c1,c2表示类别）具体意义为给定某个由x、y表示的数据点，则该点来自于类别的c1的概率是多少 ** 朴素贝叶斯的一般过程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NVbayes">
+<meta property="og:url" content="http://yoursite.com/2020/09/20/NVbayes/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="朴素贝叶斯优点：在数据较小的情况下仍然有效，可以处理多类别的问题。 缺点：对于输入数据的准备方式较为敏感。 适用数据类型：标称性数据。 p1(x, y)表示该点属于类别1的概率p2(x, y)表示该点属于类别2的概率 真正需要比较的是p（c1|x, y）和p（c2|x,y）。（c1,c2表示类别）具体意义为给定某个由x、y表示的数据点，则该点来自于类别的c1的概率是多少 ** 朴素贝叶斯的一般过程">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-09-20T13:22:50.000Z">
+<meta property="article:modified_time" content="2020-09-20T13:24:12.037Z">
+<meta property="article:author" content="Lzzz">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2020/09/20/NVbayes/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>NVbayes | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/09/20/NVbayes/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Lzzz">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          NVbayes
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-09-20 21:22:50 / Modified: 21:24:12" itemprop="dateCreated datePublished" datetime="2020-09-20T21:22:50+08:00">2020-09-20</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="朴素贝叶斯"><a href="#朴素贝叶斯" class="headerlink" title="朴素贝叶斯"></a>朴素贝叶斯</h1><p>优点：在数据较小的情况下仍然有效，可以处理多类别的问题。</p>
+<p>缺点：对于输入数据的准备方式较为敏感。</p>
+<p>适用数据类型：标称性数据。</p>
+<p>p1(x, y)表示该点属于类别1的概率<br>p2(x, y)表示该点属于类别2的概率</p>
+<p>真正需要比较的是p（c1|x, y）和p（c2|x,y）。（c1,c2表示类别）具体意义为给定某个由x、y表示的数据点，则该点来自于类别的c1的概率是多少</p>
+<p>** 朴素贝叶斯的一般过程 **</p>
+<ol>
+<li>收集数据：可以使用任何方法。</li>
+<li>准备数据：需要数值型或布尔型数据。</li>
+<li>分析数据：有大量特征时，绘制特征作用不大，此时使用直方图效果更好。</li>
+<li>训练算法：计算不同的独立特征的条件概率。</li>
+<li>测试算法：计算错误率。</li>
+<li>使用算法：一个常见的朴素贝叶斯应用应该是文档分类。可以在任意的分类场景中使用朴素贝叶斯分类器，不一定非要是文本。</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> numpy <span class="keyword">import</span> *</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 词表到向量的转换函数</span></span><br><span class="line"><span class="comment"># 创建一些实验样本</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">loadDataSet</span>():</span></span><br><span class="line">    postingList=[[<span class="string">&#x27;my&#x27;</span>, <span class="string">&#x27;dog&#x27;</span>, <span class="string">&#x27;has&#x27;</span>, <span class="string">&#x27;flea&#x27;</span>, <span class="string">&#x27;problems&#x27;</span>, <span class="string">&#x27;help&#x27;</span>, <span class="string">&#x27;please&#x27;</span>],</span><br><span class="line">                 [<span class="string">&#x27;maybe&#x27;</span>, <span class="string">&#x27;not&#x27;</span>, <span class="string">&#x27;take&#x27;</span>, <span class="string">&#x27;him&#x27;</span>, <span class="string">&#x27;to&#x27;</span>, <span class="string">&#x27;dog&#x27;</span>, <span class="string">&#x27;park&#x27;</span>, <span class="string">&#x27;stupid&#x27;</span>],</span><br><span class="line">                 [<span class="string">&#x27;my&#x27;</span>, <span class="string">&#x27;dalmation&#x27;</span>, <span class="string">&#x27;is&#x27;</span>, <span class="string">&#x27;so&#x27;</span>, <span class="string">&#x27;cute&#x27;</span>, <span class="string">&#x27;I&#x27;</span>, <span class="string">&#x27;love&#x27;</span>, <span class="string">&#x27;him&#x27;</span>],</span><br><span class="line">                 [<span class="string">&#x27;stop&#x27;</span>, <span class="string">&#x27;posting&#x27;</span>, <span class="string">&#x27;stupid&#x27;</span>, <span class="string">&#x27;worthless&#x27;</span>, <span class="string">&#x27;garbage&#x27;</span>],</span><br><span class="line">                 [<span class="string">&#x27;mr&#x27;</span>, <span class="string">&#x27;licks&#x27;</span>, <span class="string">&#x27;ate&#x27;</span>, <span class="string">&#x27;my&#x27;</span>, <span class="string">&#x27;steak&#x27;</span>, <span class="string">&#x27;how&#x27;</span>, <span class="string">&#x27;to&#x27;</span>, <span class="string">&#x27;stop&#x27;</span>, <span class="string">&#x27;him&#x27;</span>],</span><br><span class="line">                 [<span class="string">&#x27;quit&#x27;</span>, <span class="string">&#x27;buying&#x27;</span>, <span class="string">&#x27;worthless&#x27;</span>, <span class="string">&#x27;dog&#x27;</span>, <span class="string">&#x27;food&#x27;</span>, <span class="string">&#x27;stupid&#x27;</span>]]</span><br><span class="line">    classVec = [<span class="number">0</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>]</span><br><span class="line">    <span class="keyword">return</span> postingList, classVec</span><br><span class="line"></span><br><span class="line"><span class="comment"># 创建所有文档中出现的不重复的列表</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">createVocabList</span>(<span class="params">dataSet</span>):</span></span><br><span class="line">    vocabSet = set([])</span><br><span class="line">    <span class="keyword">for</span> document <span class="keyword">in</span> dataSet:</span><br><span class="line">        vocabSet = vocabSet | set(document)</span><br><span class="line">    <span class="keyword">return</span> list(vocabSet)</span><br><span class="line">    </span><br><span class="line"><span class="comment"># 输入为词汇表及某个文档，输出是文档向量</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">setOfWords2Vec</span>(<span class="params">vocabList, inputSet</span>):</span></span><br><span class="line">    returnVec = [<span class="number">0</span>]*len(vocabList)</span><br><span class="line">    <span class="keyword">for</span> word <span class="keyword">in</span> inputSet:</span><br><span class="line">        <span class="keyword">if</span> word <span class="keyword">in</span> vocabList:</span><br><span class="line">            returnVec[vocabList.index(word)] = <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            print(<span class="string">&quot;the word: %s is not in my Vocabulary&quot;</span> % word)</span><br><span class="line">    <span class="keyword">return</span> returnVec</span><br></pre></td></tr></table></figure>
+
+<p><code>loadDataSet()</code>创建了一些实验样本。返回的第一个变量是进行词条切分后的文档集合，第二个变量是一个类别标签的集合。</p>
+<p><code>createVocabList()</code>创建一个包含所有文档中出现的不重复词的列表。将每篇文档返回的新词集合添加到该集合中。操作符<code>|</code>用于求两个集合的并集。</p>
+<p><code>setOfWords2Vec()</code>输出的是文档向量，向量的每一个元素为1或0，表示词汇表中的单词在输入文档中是否出现。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">listOPosts, listClasses = loadDataSet()</span><br><span class="line">myVocabList = createVocabList(listOPosts)</span><br><span class="line">myVocabList</span><br></pre></td></tr></table></figure>
+
+<p>输出结果：</p>
+<pre><code>[&#39;dog&#39;,
+ &#39;is&#39;,
+ &#39;please&#39;,
+ &#39;problems&#39;,
+ &#39;I&#39;,
+ &#39;garbage&#39;,
+ &#39;ate&#39;,
+ &#39;worthless&#39;,
+ &#39;has&#39;,
+ &#39;maybe&#39;,
+ &#39;my&#39;,
+ &#39;love&#39;,
+ &#39;stop&#39;,
+ &#39;cute&#39;,
+ &#39;buying&#39;,
+ &#39;help&#39;,
+ &#39;licks&#39;,
+ &#39;so&#39;,
+ &#39;park&#39;,
+ &#39;steak&#39;,
+ &#39;him&#39;,
+ &#39;take&#39;,
+ &#39;how&#39;,
+ &#39;food&#39;,
+ &#39;dalmation&#39;,
+ &#39;posting&#39;,
+ &#39;to&#39;,
+ &#39;quit&#39;,
+ &#39;flea&#39;,
+ &#39;mr&#39;,
+ &#39;stupid&#39;,
+ &#39;not&#39;]</code></pre>
+<p>$$ p(c_i|w) = \frac{p(w|c_i)p(c_i)}{p(w)} $$</p>
+<p><code>w</code>表示一个向量，即它由多个数值组成在本例中，数值个数与词汇表的词个数相同。</p>
+<p>首先通过类别i中文档数处以总的文档数来计算$p(c_i)$ 。</p>
+<p>接下来计算$p(w|c_i)$，需要使用朴素贝叶斯假设。将<code>w</code>展开为一个个独立特征。将上述概率改为$ p(w_0|c_i)p(w_1|c_i)p(w_2|c_i)…p(w_N|c_i)$来计算概率。</p>
+<p><strong>关于分母$p(w)$的计算没有出现，可能因为是同时除以这个概率所以不影响比较而忽略</strong></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> numpy <span class="keyword">import</span> *</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">trainNB0</span>(<span class="params">trainMatrix, trainCategory</span>):</span></span><br><span class="line">    numTrainDocs = len(trainMatrix)</span><br><span class="line">    numWords = len(trainMatrix[<span class="number">0</span>])</span><br><span class="line">    <span class="comment"># 计算为1的即侮辱文档的概率</span></span><br><span class="line">    pAbusive = sum(trainCategory)/float(numTrainDocs)</span><br><span class="line">    p0Num = zeros(numWords); p1Num = zeros(numWords)</span><br><span class="line">    p0Denom = <span class="number">0.0</span>; p1Denom = <span class="number">0.0</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(numTrainDocs):</span><br><span class="line">        <span class="keyword">if</span> trainCategory[i] == <span class="number">1</span>:</span><br><span class="line">            p1Num += trainMatrix[i]</span><br><span class="line">            <span class="comment"># 文章为侮辱，其所有对应位置的词值加一</span></span><br><span class="line">            p1Denom += sum(trainMatrix[i])</span><br><span class="line">            <span class="comment"># 同时文档的总词数添加该文章的词数</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            p0Num += trainMatrix[i]</span><br><span class="line">            p1Denom += sum(trainMatrix[i])</span><br><span class="line">    p1Vect = p1Num/p1Denom</span><br><span class="line">    <span class="comment"># 计算每个词在该类别中的概率,即条件概率</span></span><br><span class="line">    p0Vect = p0Num/p0Denom</span><br><span class="line">    <span class="keyword">return</span> p0Vect, p1Vect, pAbusive</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">listOPosts, listClasses = loadDataSet()</span><br><span class="line">myVocabList = createVocabList(listOPosts)</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 计算条件概率的改进</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">trainNB0</span>(<span class="params">trainMatrix, trainCategory</span>):</span></span><br><span class="line">    numTrainDocs = len(trainMatrix)</span><br><span class="line">    numWords = len(trainMatrix[<span class="number">0</span>])</span><br><span class="line">    pAbusive = sum(trainCategory)/float(numTrainDocs)</span><br><span class="line">    <span class="comment"># p0Num = zeros(numWords); p1Num = zeros(numWords) 存在某个单词概率为0 导致乘积为0</span></span><br><span class="line">    p0Num = ones(numWords); p1Num = ones(numWords)</span><br><span class="line">    p0Denom = <span class="number">2.0</span>; p1Denom = <span class="number">2.0</span></span><br><span class="line">    <span class="comment"># p0Denom = 0.0; p1Denom = 0.0</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(numTrainDocs):</span><br><span class="line">        <span class="keyword">if</span> trainCategory[i] == <span class="number">1</span>:</span><br><span class="line">            p1Num += trainMatrix[i]</span><br><span class="line">            p1Denom += sum(trainMatrix[i])</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            p0Num += trainMatrix[i]</span><br><span class="line">            p0Denom += sum(trainMatrix[i])</span><br><span class="line">    <span class="comment"># p1Vect = p1Num/p1Denom</span></span><br><span class="line">    <span class="comment"># p0Vect = p0Num/p0Denom</span></span><br><span class="line">    <span class="comment"># 取自然对数，防止过多的小数据相乘导致数据下溢变为0</span></span><br><span class="line">    p1Vect = log(p1Num/p1Denom)</span><br><span class="line">    p0Vect = log(p0Num/p0Denom)</span><br><span class="line">    <span class="keyword">return</span> p0Vect, p1Vect, pAbusive</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">listOPosts, listClasses = loadDataSet()</span><br><span class="line"></span><br><span class="line">myVocabList = createVocabList(listOPosts)</span><br><span class="line"></span><br><span class="line">trainMat=[]</span><br><span class="line"><span class="keyword">for</span> postinDoc <span class="keyword">in</span> listOPosts:</span><br><span class="line">    trainMat.append(setOfWords2Vec(myVocabList, postinDoc))</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">p0V, p1V, pAb=trainNB0(trainMat, listClasses)</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Input: pAb</span><br><span class="line">Out: <span class="number">0.5</span></span><br></pre></td></tr></table></figure>
+
+
+<pre><code>Input: p0V
+Out:
+array([-2.56494936, -2.56494936, -2.56494936, -2.56494936, -2.56494936,
+       -3.25809654, -2.56494936, -3.25809654, -2.56494936, -3.25809654,
+       -1.87180218, -2.56494936, -2.56494936, -2.56494936, -3.25809654,
+       -2.56494936, -2.56494936, -2.56494936, -3.25809654, -2.56494936,
+       -2.15948425, -3.25809654, -2.56494936, -3.25809654, -2.56494936,
+       -3.25809654, -2.56494936, -3.25809654, -2.56494936, -2.56494936,
+       -3.25809654, -3.25809654])</code></pre>
+<p>vec2Classify为要分类的向量。这里的相乘是指对应元素相乘</p>
+<p><strong>之所以前面为sum是因为因为对数的乘法运算法则，在外面再套一层log不影响增减</strong></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">classifyNB</span>(<span class="params">vec2Classify, p0Vec, p1Vec, pClass1</span>):</span></span><br><span class="line">    p1 = sum(vec2Classify * p1Vec) + log(pClass1)</span><br><span class="line">    p0 = sum(vec2Classify * p0Vec) + log(<span class="number">1.0</span> - pClass1)</span><br><span class="line">    <span class="keyword">if</span> p1 &gt; p0:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">else</span>: </span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">    </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">testingNB</span>():</span></span><br><span class="line">    listOPosts, listClasses = loadDataSet()</span><br><span class="line">    myVocabList = createVocabList(listOPosts)</span><br><span class="line">    trainMat = []</span><br><span class="line">    <span class="keyword">for</span> postinDoc <span class="keyword">in</span> listOPosts:</span><br><span class="line">        trainMat.append(setOfWords2Vec(myVocabList, postinDoc))</span><br><span class="line">    p0V,p1V,pAb = trainNB0(array(trainMat), array(listClasses))</span><br><span class="line">    testEntry = [<span class="string">&#x27;love&#x27;</span>, <span class="string">&#x27;my&#x27;</span>, <span class="string">&#x27;dalmation&#x27;</span>]</span><br><span class="line">    thisDoc = array(setOfWords2Vec(myVocabList, testEntry))</span><br><span class="line">    print(testEntry, <span class="string">&quot;classified as: &quot;</span>, classifyNB(thisDoc, p0V, p1V, pAb))</span><br><span class="line">    testEntry = [<span class="string">&#x27;stupid&#x27;</span>, <span class="string">&#x27;garbage&#x27;</span>]</span><br><span class="line">    thisDoc = array(setOfWords2Vec(myVocabList, testEntry))</span><br><span class="line">    print(testEntry, <span class="string">&quot;classified as: &quot;</span>, classifyNB(thisDoc, p0V, p1V, pAb))</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">testingNB()</span><br></pre></td></tr></table></figure>
+
+<pre><code>[&#39;love&#39;, &#39;my&#39;, &#39;dalmation&#39;] classified as:  0
+[&#39;stupid&#39;, &#39;garbage&#39;] classified as:  1</code></pre>
+<h2 id="词袋类型"><a href="#词袋类型" class="headerlink" title="词袋类型"></a>词袋类型</h2><ul>
+<li>每个词的出现与否作为特征： 词集模型</li>
+<li>一个词在文档中出现不止一次，意味着该词是否出现不能表达的某种信息：词袋模型</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 词袋模型</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bagOfWords2VecMN</span>(<span class="params">vocabList, inputSet</span>):</span></span><br><span class="line">    returnVec = [<span class="number">0</span>]*len(vocabList)</span><br><span class="line">    <span class="keyword">for</span> word <span class="keyword">in</span> inputSet:</span><br><span class="line">        returnVec[vocabList.index[word]] += <span class="number">1</span></span><br><span class="line">    <span class="keyword">return</span> returnVec</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MySent = <span class="string">&quot;This book is the best book on Python or M.L. I have laid eyes upon&quot;</span></span><br><span class="line">MySent.split()</span><br></pre></td></tr></table></figure>
+
+
+
+
+<pre><code>[&#39;This&#39;,
+ &#39;book&#39;,
+ &#39;is&#39;,
+ &#39;the&#39;,
+ &#39;best&#39;,
+ &#39;book&#39;,
+ &#39;on&#39;,
+ &#39;Python&#39;,
+ &#39;or&#39;,
+ &#39;M.L.&#39;,
+ &#39;I&#39;,
+ &#39;have&#39;,
+ &#39;laid&#39;,
+ &#39;eyes&#39;,
+ &#39;upon&#39;]</code></pre>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> re</span><br><span class="line">regEx = re.compile(<span class="string">&#x27;\\W*&#x27;</span>)</span><br><span class="line">listOfTokens = regEx.split(MySent)</span><br><span class="line">listOfTokens</span><br></pre></td></tr></table></figure>
+
+
+
+
+<pre><code>[&#39;This&#39;,
+ &#39;book&#39;,
+ &#39;is&#39;,
+ &#39;the&#39;,
+ &#39;best&#39;,
+ &#39;book&#39;,
+ &#39;on&#39;,
+ &#39;Python&#39;,
+ &#39;or&#39;,
+ &#39;M&#39;,
+ &#39;L&#39;,
+ &#39;I&#39;,
+ &#39;have&#39;,
+ &#39;laid&#39;,
+ &#39;eyes&#39;,
+ &#39;upon&#39;]</code></pre>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[tok.lower() <span class="keyword">for</span> tok <span class="keyword">in</span> listOfTokens <span class="keyword">if</span> len(tok) &gt; <span class="number">0</span>]</span><br><span class="line"><span class="comment"># 去除其中的空字符串</span></span><br></pre></td></tr></table></figure>
+
+
+<pre><code>[&#39;this&#39;,
+ &#39;book&#39;,
+ &#39;is&#39;,
+ &#39;the&#39;,
+ &#39;best&#39;,
+ &#39;book&#39;,
+ &#39;on&#39;,
+ &#39;python&#39;,
+ &#39;or&#39;,
+ &#39;m&#39;,
+ &#39;l&#39;,
+ &#39;i&#39;,
+ &#39;have&#39;,
+ &#39;laid&#39;,
+ &#39;eyes&#39;,
+ &#39;upon&#39;]</code></pre>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">textParse</span>(<span class="params">bigString</span>):</span></span><br><span class="line">    <span class="keyword">import</span> re</span><br><span class="line">    listOfTokens = re.split(<span class="string">r&#x27;\W+&#x27;</span>, bigString)</span><br><span class="line">    <span class="keyword">return</span> [tok.lower() <span class="keyword">for</span> tok <span class="keyword">in</span> listOfTokens <span class="keyword">if</span> len(tok) &gt; <span class="number">2</span>]</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">spamTest</span>():</span></span><br><span class="line">    docList = []; classList = []; fullText = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1</span>, <span class="number">26</span>):</span><br><span class="line">        wordList = textParse(open(<span class="string">&#x27;email/spam/%d.txt&#x27;</span>%i,encoding=<span class="string">&#x27;gb18030&#x27;</span>, errors=<span class="string">&#x27;ignore&#x27;</span>).read())</span><br><span class="line">        docList.append(wordList)</span><br><span class="line">        fullText.extend(wordList)</span><br><span class="line">        classList.append(<span class="number">1</span>)</span><br><span class="line">        <span class="comment"># wordList = textParse(open(&#x27;email/ham/%d.txt&#x27;%i, encoding=&#x27;gb18030&#x27;, errors=&#x27;ignore&#x27;).read())</span></span><br><span class="line">        wordList = textParse(open(<span class="string">&#x27;email/ham/%d.txt&#x27;</span> % i, encoding=<span class="string">&#x27;gb18030&#x27;</span>, errors=<span class="string">&#x27;ignore&#x27;</span>).read())</span><br><span class="line">        docList.append(wordList)</span><br><span class="line">        fullText.extend(wordList)</span><br><span class="line">        classList.append(<span class="number">0</span>)</span><br><span class="line">    vocabList = createVocabList(docList)</span><br><span class="line">    trainingSet = list(range(<span class="number">50</span>)); testSet = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</span><br><span class="line">        randIndex = int(random.uniform(<span class="number">0</span>, len(trainingSet)))</span><br><span class="line">        testSet.append(trainingSet[randIndex])</span><br><span class="line">        <span class="keyword">del</span>(trainingSet[randIndex])</span><br><span class="line">    trainMat = []; trainClasses = []</span><br><span class="line">    <span class="keyword">for</span> docIndex <span class="keyword">in</span> trainingSet:</span><br><span class="line">        trainMat.append(setOfWords2Vec(vocabList, docList[docIndex]))</span><br><span class="line">        trainClasses.append(classList[docIndex])</span><br><span class="line">    p0V, p1V, pSpam = trainNB0(array(trainMat), array(trainClasses))</span><br><span class="line">    errorCount = <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> docIndex <span class="keyword">in</span> testSet:</span><br><span class="line">        wordVector = setOfWords2Vec(vocabList, docList[docIndex])</span><br><span class="line">        <span class="keyword">if</span> classifyNB(array(wordVector), p0V, p1V, pSpam) != classList[docIndex]:</span><br><span class="line">            errorCount += <span class="number">1</span></span><br><span class="line">    print(<span class="string">&#x27;the error rate is: &#x27;</span>, float(errorCount)/len(testSet))</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">spamTest()</span><br></pre></td></tr></table></figure>
+
+<pre><code>the error rate is:  0.0</code></pre>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/08/19/decision_tree/" rel="prev" title="机器学习实战第三章决策树">
+      <i class="fa fa-chevron-left"></i> 机器学习实战第三章决策树
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF"><span class="nav-number">1.</span> <span class="nav-text">朴素贝叶斯</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%8D%E8%A2%8B%E7%B1%BB%E5%9E%8B"><span class="nav-number">1.1.</span> <span class="nav-text">词袋类型</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Lzzz</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lzzz</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> v5.0.2
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
